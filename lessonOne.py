@@ -1,0 +1,1 @@
+"This is a test file for the first lesson of the IT comunication course."
