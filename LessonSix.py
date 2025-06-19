@@ -18,7 +18,7 @@ for epoch in range(1000):
     rnd = [[np.random.uniform(-1.0, 1.0),
             np.random.uniform(-1.0, 1.0)] for _ in range(100)]
     x = torch.tensor(rnd)
-
+    
     y = model(x)
     y_hat = target_func(x)
     E = torch.nn.functional.mse_loss(y, y_hat, reduction="sum")
