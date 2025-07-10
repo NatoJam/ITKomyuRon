@@ -29,6 +29,7 @@ def target_func(x):
 model = SimpleNN(2, 4, 3, 1)
 #model = SimpleNN(2, 3, 1)
 optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
+#optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
 for epoch in range(5000):
     rnd = [[np.random.uniform(-1.0, 1.0), np.random.uniform(-1.0, 1.0)] for _ in range(100)]
