@@ -1,0 +1,12 @@
+Kaggleの何のデータ（URLとデータの名前）を用いたのか。
+URL：https://www.kaggle.com/datasets/tfisthis/global-air-quality-and-respiratory-health-outcomes
+データの名前：Global Air Quality and Respiratory Health Outcomes
+
+何を入力として何を推定するのか。
+PM2.5と入院数の関係にしてみたが、これからは人口密度も考える予定で（csvに人口がなくて惜しい　人口さえあれば入院率を計算することが可能）
+
+ニューラルネットワークの構成（ニューロン数，層数など）
+授業と同じく４層にしています。1-16-8-1
+
+結果と考察
+PM2.5と入院数は正の関係はあるが、言い切れるほどではありません。さらなる考察が必要となる。
