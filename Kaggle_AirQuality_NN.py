@@ -1,17 +1,17 @@
 #import datasets and libs
 import os
 import pandas as pd
-import kagglehub
 import torch
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import accuracy_score, classification_report
 
 import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 
 # Download latest version
+import kagglehub
 path = kagglehub.dataset_download("tfisthis/global-air-quality-and-respiratory-health-outcomes")
 
 print("Path to dataset files:", path)
@@ -29,9 +29,27 @@ print(df.head())
 print(df.isnull().sum())
 df = df.dropna()
 
-#PM2.5 with hospital_admissions
-X = df[['pm2_5']].values.astype(np.float32)
-y = df[['hospital_admissions']].values.astype(np.float32)
+# AQIカテゴリ（6段階分類）
+def categorize_aqi(aqi):
+    if aqi <= 50:
+        return 0  # Good
+    elif aqi <= 100:
+        return 1  # Moderate
+    elif aqi <= 150:
+        return 2  # Unhealthy for SG
+    elif aqi <= 200:
+        return 3  # Unhealthy
+    elif aqi <= 300:
+        return 4  # Very Unhealthy
+    else:
+        return 5  # Hazardous
+
+df["aqi_category"] = df["aqi"].apply(categorize_aqi)
+
+# 特徴量
+X = df[["pm2_5", "pm10", "no2", "o3", "temperature", "humidity"]].values.astype(np.float32)
+y = df["aqi_category"].values.astype(np.int64)
+
 #split_data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -41,57 +59,53 @@ y_train_tensor = torch.tensor(y_train)
 X_test_tensor = torch.tensor(X_test)
 y_test_tensor = torch.tensor(y_test)
 
-# four-layer neural network
-class SimpleNN(torch.nn.Module):
-    def __init__(self, input_size, lower_hidden_size, upper_hidden_size, output_size):
+# ニューラルネットワーク（分類用）
+class ClassificationNN(torch.nn.Module):
+    def __init__(self, input_size, hidden1, hidden2, output_size):
         super().__init__()
-        self.l1 = torch.nn.Linear(input_size, lower_hidden_size)
-        self.l2 = torch.nn.Linear(lower_hidden_size, upper_hidden_size)
-        self.l3 = torch.nn.Linear(upper_hidden_size, output_size)
+        self.fc1 = torch.nn.Linear(input_size, hidden1)
+        self.fc2 = torch.nn.Linear(hidden1, hidden2)
+        self.fc3 = torch.nn.Linear(hidden2, output_size)
     def forward(self, x):
-        h1 = torch.relu(self.l1(x))
-        h2 = torch.relu(self.l2(h1))
-        o = self.l3(h2)
-        return o
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        return self.fc3(x)
 
-#model
-model = SimpleNN(1, 16, 8, 1)
+# モデル初期化
+model = ClassificationNN(input_size=6, hidden1=32, hidden2=16, output_size=6)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-loss_fn = torch.nn.MSELoss()
+loss_fn = torch.nn.CrossEntropyLoss()
 
 #train loop
-for epoch in range(1000):
+for epoch in range(20):
     model.train()
-    y_pred = model(X_train_tensor)
-    loss = loss_fn(y_pred, y_train_tensor)
+    logits = model(X_train_tensor)
+    loss = loss_fn(logits, y_train_tensor)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-
-    if epoch % 100 == 0:
+    if epoch % 5 == 0:
         print(f"Epoch {epoch}: Loss = {loss.item():.4f}")
 
 #prediction
 model.eval()
 with torch.no_grad():
-    y_pred_tensor = model(X_test_tensor)
+    logits = model(X_test_tensor)
+    y_pred_tensor = torch.argmax(logits, dim=1)
     y_pred = y_pred_tensor.numpy()
 
-#MSE and R²
-print("MSE:", mean_squared_error(y_test, y_pred))
-print("R²:", r2_score(y_test, y_pred))
+# Accuracy and classification report
+acc = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {acc * 100:.2f}%")
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
 
-#visualization
+# 可視化（PM2.5 vs AQIクラス）
 plt.figure(figsize=(8, 6))
-plt.scatter(X_test, y_test, label="Actual", alpha=0.7)
-
-#sort
-sorted_idx = np.argsort(X_test.flatten())
-plt.plot(X_test[sorted_idx], y_pred[sorted_idx], color="red", label="Predicted", linewidth=2)
-
+plt.scatter(X_test[:, 0], y_test, label="Actual", alpha=0.5)
+plt.scatter(X_test[:, 0], y_pred, label="Predicted", alpha=0.5, color='red')
 plt.xlabel("PM2.5")
-plt.ylabel("Hospital Admissions")
-plt.title("Regression: PM2.5 and Hospital Admissions (Neural Network)")
+plt.ylabel("AQI Category")
+plt.title("Classification: PM2.5 and AQI Category (Neural Network)")
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
