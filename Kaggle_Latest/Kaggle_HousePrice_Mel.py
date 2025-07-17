@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 # 前処理
 df = pd.read_csv("../data/melb_data.csv")
 df = df.dropna() # 欠損値削除
+print(df.shape)
 
 # 数値列を取る
 numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
@@ -74,7 +75,7 @@ patience = 1000
 patience_counter = 0
 
 # 学習ループ
-for epoch in range(15000):
+for epoch in range(5000):
     model.train()
     preds = model(X_train_tensor)
     loss = loss_fn(preds, y_train_tensor)
