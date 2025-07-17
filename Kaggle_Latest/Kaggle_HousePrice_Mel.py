@@ -70,7 +70,7 @@ loss_fn = torch.nn.MSELoss()
 
 # EarlyStop設定
 best_loss = float('inf')
-patience = 1000
+patience = 750
 patience_counter = 0
 
 # 学習ループ
