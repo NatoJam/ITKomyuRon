@@ -70,7 +70,7 @@ loss_fn = torch.nn.MSELoss()
 
 # EarlyStop設定
 best_loss = float('inf')
-patience = 500
+patience = 1000
 patience_counter = 0
 
 # 学習ループ
@@ -119,3 +119,29 @@ plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
+
+# --- 任意入力による予測 ---
+print("\n--- 任意の入力による予測 ---")
+
+# 選ばれた特徴量名の確認
+print("使用された特徴量:", selected_features)
+
+# 検証
+input_values = []
+for feature in selected_features:
+    val = float(input(f"Input {feature} value: "))
+    input_values.append(val)
+
+# 入力
+input_array = np.array(input_values).reshape(1, -1)
+input_scaled = scaler_X.transform(input_array)
+input_tensor = torch.tensor(input_scaled, dtype=torch.float32)
+
+# 予測
+model.eval()
+with torch.no_grad():
+    pred_scaled = model(input_tensor).numpy()
+    pred_price = scaler_y.inverse_transform(pred_scaled)
+
+# 結果表示
+print(f"\ny_pred: {pred_price[0][0]:,.2f}（AUD）")
